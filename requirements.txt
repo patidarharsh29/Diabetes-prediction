@@ -89,3 +89,4 @@ wrapt==1.17.2
 xgboost==3.0.4
 yfinance==0.2.61
 zipp==3.23.0
+streamlit-lottie
