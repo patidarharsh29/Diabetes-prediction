@@ -121,8 +121,8 @@ col1, col2 = st.columns(2)
 with col1:
     Age = st.slider("Age", 18, 100, 40)
     Gender = st.selectbox("Gender", ['M','F'])
-    Hypertension = st.selectbox("Hypertension", [0,1])
-    Heart_disease = st.selectbox("Heart Disease", [0,1])
+    Hypertension = st.selectbox("Hypertension", ['No','Yes'])
+    Heart_disease = st.selectbox("Heart Disease", ['No','Yes'])
 
 with col2:
     Smoking_history = st.selectbox("Smoking History", ['Never','No Info','Current','Former','Ever','Not Current'])
