@@ -1,72 +1,13 @@
-# import streamlit as st
-# import joblib
-# import pandas as pd
-
-
-# model  = joblib.load("Random.pkl")
-# scaler = joblib.load("scaler.pkl")
-# expected_columns = joblib.load("columns.pkl")
-
-
-
-
-# st.title("Diabetes prediction by harsh ❤️")
-# st.markdown("Provide the following details")
-# Age = st.slider("Age",18,100,40)
-# Gender = st.selectbox("SEX",['M','F'])
-# Hypertension = st.selectbox("Hyper Tension",[0,1])
-# Heart_disease = st.selectbox("Heart Disease",[0,1])
-# Smoking_history = st.selectbox("Smoking History",['Never','No Info','Current','Former','Ever','Not Current'])
-# Bmi = st.number_input("Body Mass Index",10.0,100.0,20.0)
-# HbA1c_level = st.number_input("Hemoglobin A1c test",4.0,16.0,5.0)
-# Blood_glucose_level = st.number_input("Blood Glucose Level",50,300,120)
-
-
-
-
-# if st.button('Predict'):
-#     raw_input = {
-#         'Age': Age,
-#         'Gender'+ Gender: 1,
-#         'Hypertension': Hypertension,
-#         'Heart_disease' :Heart_disease,
-#         'Smoking_history' : Smoking_history,
-#         'Bmi' : Bmi,
-#         'HbA1c_level' : HbA1c_level,
-#         'Blood_glucose_level' : Blood_glucose_level
-        
-#     }
-
-#     input_df = pd.DataFrame([raw_input])
-
-#     for col in expected_columns:
-#         if col not in input_df.columns:
-#             input_df[col] = 0
-            
-#     input_df = input_df[expected_columns]
-    
-#     scaled_input = scaler.transform(input_df)
-#     prediction = model.predict(scaled_input)[0]
-    
-#     if prediction ==1:
-#         st.error("⚠️ High Risk of Diabetes")
-#     else:
-#         st.success("✅ Low Risk of Diabetes")
-
-
-
-
 import streamlit as st
-import joblib
 import pandas as pd
-import json
+import joblib
 import requests
 from streamlit_lottie import st_lottie
 
-# -------------------- CONFIG --------------------
-st.set_page_config(page_title="Diabetes Prediction", page_icon="❤️", layout="wide")
+# -------------------- PAGE CONFIG --------------------
+st.set_page_config(page_title="Diabetes Predictor", page_icon="🩺", layout="wide")
 
-# Custom CSS
+# -------------------- CUSTOM CSS --------------------
 st.markdown(
     """
     <style>
@@ -102,63 +43,74 @@ def load_lottieurl(url: str):
         return None
     return r.json()
 
-# Doctor/Health Animation
 lottie_health = load_lottieurl("https://assets6.lottiefiles.com/packages/lf20_tutvdkg0.json")
 
-# -------------------- LOAD MODEL --------------------
-model  = joblib.load("Random.pkl")
-scaler = joblib.load("scaler.pkl")
-expected_columns = joblib.load("columns.pkl")
+# -------------------- LOAD MODEL + ENCODERS + SCALER --------------------
+model = joblib.load("model.joblib")
+encoders = joblib.load("encoders.joblib")
+scaler = joblib.load("scaler.joblib")
 
-# -------------------- APP UI --------------------
-st.title("🩺 Diabetes Prediction by Harsh ❤️")
-st_lottie(lottie_health, height=200, key="health")
+# -------------------- UI TITLE --------------------
+st.title("🩺 Diabetes Prediction App ❤️")
+st_lottie(lottie_health, height=200)
 
-st.markdown("### 👉 Please provide the following details:")
+st.markdown("### 👉 Please enter your details")
 
+# -------------------- INPUT FORM --------------------
 col1, col2 = st.columns(2)
 
 with col1:
-    Age = st.slider("Age", 18, 100, 40)
-    Gender = st.selectbox("Gender", ['M','F'])
-    Hypertension = st.selectbox("Hypertension", ['No','Yes'])
-    Heart_disease = st.selectbox("Heart Disease", ['No','Yes'])
+    age = st.number_input("Age", 1, 120, 25)
+    gender = st.selectbox("Gender", ["Male", "Female"])
+    hypertension = st.selectbox("Hypertension (0=No, 1=Yes)", [0, 1])
+    heart_disease = st.selectbox("Heart Disease (0=No, 1=Yes)", [0, 1])
 
 with col2:
-    Smoking_history = st.selectbox("Smoking History", ['Never','No Info','Current','Former','Ever','Not Current'])
-    Bmi = st.number_input("Body Mass Index", 10.0, 100.0, 20.0)
-    HbA1c_level = st.number_input("Hemoglobin A1c test", 4.0, 16.0, 5.0)
-    Blood_glucose_level = st.number_input("Blood Glucose Level", 50, 300, 120)
+    smoking_history = st.selectbox("Smoking History",
+                                   ["never", "current", "former", "ever", "not current", "No Info"])
+    bmi = st.number_input("BMI", 10.0, 50.0, 25.0)
+    hba1c = st.number_input("HbA1c Level", 3.0, 20.0, 5.5)
+    blood_glucose = st.number_input("Blood Glucose Level", 50, 300, 100)
 
 # -------------------- PREDICTION --------------------
-if st.button('🔮 Predict'):
-    raw_input = {
-        'Age': Age,
-        'Hypertension': Hypertension,
-        'Heart_disease': Heart_disease,
-        'Smoking_history': Smoking_history,
-        'Bmi': Bmi,
-        'HbA1c_level': HbA1c_level,
-        'Blood_glucose_level': Blood_glucose_level
-    }
+if st.button("🔮 Predict"):
 
-    # Gender encoding (one-hot)
-    raw_input['Gender_'+Gender] = 1
+    # ---- Create DataFrame (Correct ML Logic) ----
+    input_data = pd.DataFrame({
+        "gender": [gender],
+        "age": [age],
+        "hypertension": [hypertension],
+        "heart_disease": [heart_disease],
+        "smoking_history": [smoking_history],
+        "bmi": [bmi],
+        "HbA1c_level": [hba1c],
+        "blood_glucose_level": [blood_glucose]
+    })
 
-    input_df = pd.DataFrame([raw_input])
+    # ---- Encode categorical data ----
+    for col in ["gender", "smoking_history"]:
+        input_data[col] = encoders[col].transform(input_data[col])
 
-    for col in expected_columns:
-        if col not in input_df.columns:
-            input_df[col] = 0
-            
-    input_df = input_df[expected_columns]
-    
-    scaled_input = scaler.transform(input_df)
-    prediction = model.predict(scaled_input)[0]
-    
+    # ---- Scale numerical data ----
+    numeric_cols = ["age", "bmi", "HbA1c_level", "blood_glucose_level"]
+    input_data[numeric_cols] = scaler.transform(input_data[numeric_cols])
+
+    # ---- Column Order ----
+    final_cols = ["gender", "age", "hypertension", "heart_disease",
+                  "smoking_history", "bmi", "HbA1c_level", "blood_glucose_level"]
+
+    input_data = input_data[final_cols]
+
+    # ---- Prediction ----
+    prediction = model.predict(input_data)[0]
+    # prob = model.predict_proba(input_data)[0][1] * 100
+
+    # ---- Result UI ----
     if prediction == 1:
-        st.error("🚨 **High Risk of Diabetes Detected!** ⚠️ Please consult a doctor immediately.")
-        st_lottie(load_lottieurl("https://assets9.lottiefiles.com/packages/lf20_qp1q7mct.json"), height=200, key="alert")
+        st.error(f"🚨 High Risk of Diabetes Detected!")
+        st_lottie(load_lottieurl("https://assets9.lottiefiles.com/packages/lf20_qp1q7mct.json"), height=200)
     else:
-        st.success("🎉 **Low Risk of Diabetes!** ✅ Stay healthy & keep maintaining your lifestyle.")
-        st_lottie(load_lottieurl("https://assets9.lottiefiles.com/packages/lf20_touohxv0.json"), height=200, key="success")
+        st.success(f"🎉 Low Risk of Diabetes!")
+        st_lottie(load_lottieurl("https://assets9.lottiefiles.com/packages/lf20_touohxv0.json"), height=200)
+
+
